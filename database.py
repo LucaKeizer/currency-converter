@@ -17,7 +17,8 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             currency TEXT NOT NULL,
             date TEXT NOT NULL,
-            rate REAL NOT NULL
+            rate REAL NOT NULL,
+            UNIQUE(currency, date)
         )
     """)
     conn.commit()
@@ -40,7 +41,7 @@ def store_rate(currency: str, date: str, rate: float):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO exchange_rates (currency, date, rate) VALUES (?, ?, ?)",
+        "INSERT OR IGNORE INTO exchange_rates (currency, date, rate) VALUES (?, ?, ?)",
         (currency, date, rate)
     )
     conn.commit()

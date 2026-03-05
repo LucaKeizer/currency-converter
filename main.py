@@ -5,7 +5,7 @@ import httpx
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Security
 from fastapi.security.api_key import APIKeyHeader
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from database import init_db
 from exchange import get_rate_in_eur
@@ -33,6 +33,13 @@ class ConvertRequest(BaseModel):
     currency: str = Field(..., description="ISO 4217 currency code, e.g. 'USD'")
     amount: float = Field(..., gt=0)
     date: DateType
+
+    @field_validator("currency")
+    @classmethod
+    def currency_must_be_valid(cls, v):
+        if len(v) != 3 or not v.isalpha():
+            raise ValueError("Currency must be a 3-letter ISO code, e.g. 'USD'.")
+        return v.upper()
 
 
 class ConvertResponse(BaseModel):

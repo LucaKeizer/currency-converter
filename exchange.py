@@ -17,8 +17,15 @@ async def get_rate_in_eur(currency: str, date: str) -> float:
 
     async with httpx.AsyncClient() as client:
         response = await client.get(url, params=params)
+
+        if response.status_code == 404:
+            raise ValueError(f"No exchange rate data found for {currency} on {date}.")
+
         response.raise_for_status()
         data = response.json()
+
+    if "EUR" not in data.get("rates", {}):
+        raise ValueError(f"Currency '{currency}' is not supported.")
 
     rate = data["rates"]["EUR"]
     store_rate(currency.upper(), date, rate)
