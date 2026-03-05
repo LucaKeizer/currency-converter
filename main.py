@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Security
 from fastapi.security.api_key import APIKeyHeader
 from pydantic import BaseModel, Field, field_validator
+from contextlib import asynccontextmanager
 
 from database import init_db
 from exchange import get_rate_in_eur
@@ -15,12 +16,19 @@ load_dotenv()
 API_KEY = os.getenv("API_KEY")
 API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
 
-app = FastAPI()
 
-
-@app.on_event("startup")
-def startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     init_db()
+    yield
+
+
+app = FastAPI(
+    title="Currency Converter API",
+    description="Converts receipt amounts to EUR using historical exchange rates.",
+    version="1.0.0",
+    lifespan=lifespan,
+)
 
 
 def verify_api_key(key: str = Security(API_KEY_HEADER)):
