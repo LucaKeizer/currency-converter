@@ -3,7 +3,8 @@ from datetime import date as DateType
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Security
+from fastapi.security.api_key import APIKeyHeader
 from pydantic import BaseModel, Field
 
 from database import init_db
@@ -11,12 +12,21 @@ from exchange import get_rate_in_eur
 
 load_dotenv()
 
+API_KEY = os.getenv("API_KEY")
+API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
+
 app = FastAPI()
 
 
 @app.on_event("startup")
 def startup():
     init_db()
+
+
+def verify_api_key(key: str = Security(API_KEY_HEADER)):
+    if not key or key != API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid or missing API key.")
+    return key
 
 
 class ConvertRequest(BaseModel):
@@ -34,7 +44,7 @@ class ConvertResponse(BaseModel):
 
 
 @app.post("/convert", response_model=ConvertResponse)
-async def convert(request: ConvertRequest):
+async def convert(request: ConvertRequest, _: str = Depends(verify_api_key)):
     date_str = request.date.isoformat()
 
     try:
